@@ -40,11 +40,10 @@ namespace Logger
 
         public static void Create(string type, string userCode, string appName)
         {
-            if (mInstance != null)
+            if (mInstance == null)
             {
-                throw new Exception("Object already created");
+                mInstance = new SeriLogger(type, userCode, appName);
             }
-            mInstance = new SeriLogger(type, userCode, appName);
         }
 
         static void InitializeLogger()
