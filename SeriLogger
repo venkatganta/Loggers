@@ -9,42 +9,66 @@ namespace Logger
 {
     public class SeriLogger
     {
-        private static readonly ILogger _Logger;
+        private static SeriLogger mInstance;
+        private static ILogger _Logger { get; set; }
         private static readonly object padlock = new object();
 
-        private static SeriLogger instance = null;
+        private static string LoggerType { get; set; }
+        private string UserCode { get; set; }
+        private string ApplicationName { get; set; }
 
+        private SeriLogger() { }
+
+        private SeriLogger(string type, string arg2, string appName)
+        {
+            LoggerType = type;
+            UserCode = arg2;
+            ApplicationName = appName;
+        }
         public static SeriLogger Instance
         {
             get
             {
-                if (instance == null)
+                if (mInstance == null)
                 {
-                    lock (padlock)
-                    {
-                        if (instance == null)
-                        {
-                            instance = new SeriLogger();
-                        }
-                    }
+                    throw new Exception("Object not created");
                 }
-                return instance;
+                InitializeLogger();
+                return mInstance;
             }
         }
 
-        static SeriLogger()
+        public static void Create(string type, string userCode, string appName)
+        {
+            if (mInstance != null)
+            {
+                throw new Exception("Object already created");
+            }
+            mInstance = new SeriLogger(type, userCode, appName);
+        }
+
+        static void InitializeLogger()
         {
             var connStr = "Data Source=LAPTOP-B7TENUPP;Initial Catalog=Logger;Integrated Security=True;";
             if (_Logger == null)
             {
-                _Logger = new LoggerConfiguration()
-                            .WriteTo.MSSqlServer(connStr, "DMECSLog", columnOptions: GetSqlColumnOptions())
-                            .CreateLogger();
+                if (LoggerType.ToUpper() == "DB")
+                {
+                    _Logger = new LoggerConfiguration()
+                                .WriteTo.MSSqlServer(connStr, "DMECSLog", columnOptions: GetSqlColumnOptions())
+                                .CreateLogger();
+                }
+                else
+                {
+                    _Logger = new LoggerConfiguration().
+                        WriteTo.File("log.txt")
+                        .CreateLogger();
+                }
             }
 
         }
 
-        public static ColumnOptions GetSqlColumnOptions()
+        private static ColumnOptions GetSqlColumnOptions()
         {
             var colOptions = new ColumnOptions();
             colOptions.Store.Remove(StandardColumn.MessageTemplate);
@@ -61,48 +85,47 @@ namespace Logger
         }
 
 
-        public void Debug(string userCode, string appName, string fileName, string functionName, string message)
+        public void Debug(string fileName, string functionName, string message)
         {
-            _Logger.ForContext("UserCode", userCode)
-                .ForContext("AppName", appName)
+            _Logger.ForContext("UserCode", UserCode)
+                .ForContext("AppName", ApplicationName)
                 .ForContext("FileName", fileName)
                 .ForContext("FunctionName", functionName).Debug(message);
         }
-        public void Information(string userCode, string appName, string fileName, string functionName, string message)
+        public void Information(string fileName, string functionName, string message)
         {
-            _Logger.ForContext("UserCode", userCode)
-                .ForContext("AppName", appName)
+            _Logger.ForContext("UserCode", UserCode)
+                .ForContext("AppName", ApplicationName)
                 .ForContext("FileName", fileName)
                 .ForContext("FunctionName", functionName).Information(message);
         }
-        public void Warning(string userCode, string appName, string fileName, string functionName, string message)
+        public void Warning(string fileName, string functionName, string message)
         {
-            _Logger.ForContext("UserCode", userCode)
-                .ForContext("AppName", appName)
+            _Logger.ForContext("UserCode", UserCode)
+                .ForContext("AppName", ApplicationName)
                 .ForContext("FileName", fileName)
                 .ForContext("FunctionName", functionName).Warning(message);
         }
-        public void Fatal(string userCode, string appName, string fileName, string functionName, Exception exception)
+        public void Fatal(string fileName, string functionName, Exception exception)
         {
-            _Logger.ForContext("UserCode", userCode)
-                .ForContext("AppName", appName)
+            _Logger.ForContext("UserCode", UserCode)
+                .ForContext("AppName", ApplicationName)
                 .ForContext("FileName", fileName)
-                .ForContext("FunctionName", functionName).Fatal(exception,exception.Message);
+                .ForContext("FunctionName", functionName).Fatal(exception, exception.Message);
         }
-        public void Verbose(string userCode, string appName, string fileName, string functionName, Exception exception)
+        public void Verbose(string fileName, string functionName, Exception exception)
         {
-            _Logger.ForContext("UserCode", userCode)
-                .ForContext("AppName", appName)
+            _Logger.ForContext("UserCode", UserCode)
+                .ForContext("AppName", ApplicationName)
                 .ForContext("FileName", fileName)
-                .ForContext("FunctionName", functionName).Verbose(exception,exception.Message);
+                .ForContext("FunctionName", functionName).Verbose(exception, exception.Message);
         }
-
-        public void Error(string userCode, string appName, string fileName, string functionName, Exception exception)
+        public void Error(string fileName, string functionName, Exception exception)
         {
-            _Logger.ForContext("UserCode", userCode)
-                .ForContext("AppName", appName)
+            _Logger.ForContext("UserCode", UserCode)
+                .ForContext("AppName", ApplicationName)
                 .ForContext("FileName", fileName)
-                .ForContext("FunctionName", functionName).Error(exception,exception.Message);
+                .ForContext("FunctionName", functionName).Error(exception, exception.Message);
         }
     }
 }
